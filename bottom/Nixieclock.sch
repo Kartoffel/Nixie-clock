@@ -143,6 +143,8 @@
 <layer number="229" name="229bmp" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="230" name="230bmp" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="231" name="231bmp" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="232" name="Eagle3D_PG2" color="7" fill="1" visible="no" active="no"/>
+<layer number="233" name="Eagle3D_PG3" color="7" fill="1" visible="no" active="no"/>
 <layer number="248" name="Housing" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="249" name="Edge" color="7" fill="1" visible="yes" active="yes"/>
 <layer number="250" name="Descript" color="3" fill="1" visible="no" active="no"/>
@@ -11780,6 +11782,18 @@ In this library the device names are the same as the pin names of the symbols, t
 <text x="-3" y="-6.5" size="1.27" layer="27" font="vector">&gt;VALUE</text>
 <text x="-2" y="-0.5" size="1.27" layer="21" font="vector">45MM</text>
 </package>
+<package name="TRIM-3386">
+<pad name="2" x="0" y="-2.8575" drill="0.9" diameter="1.778"/>
+<pad name="1" x="-2.54" y="-2.8575" drill="0.9" diameter="1.778"/>
+<pad name="3" x="2.54" y="-2.8575" drill="0.9" diameter="1.778"/>
+<wire x1="-4.7625" y1="-4.7625" x2="4.7625" y2="-4.7625" width="0.127" layer="21"/>
+<wire x1="4.7625" y1="-4.7625" x2="4.7625" y2="4.7625" width="0.127" layer="21"/>
+<wire x1="4.7625" y1="4.7625" x2="-4.7625" y2="4.7625" width="0.127" layer="21"/>
+<wire x1="-4.7625" y1="4.7625" x2="-4.7625" y2="-4.7625" width="0.127" layer="21"/>
+<circle x="0" y="0" radius="3.302" width="0.127" layer="21"/>
+<text x="-5.08" y="-1.905" size="1.27" layer="25" rot="R90">&gt;NAME</text>
+<text x="6.35" y="-1.905" size="1.27" layer="27" rot="R90">&gt;VALUE</text>
+</package>
 </packages>
 <symbols>
 <symbol name="MOSFET-N">
@@ -11828,7 +11842,7 @@ In this library the device names are the same as the pin names of the symbols, t
 <wire x1="10.16" y1="-10.16" x2="-7.62" y2="-10.16" width="0.254" layer="94"/>
 <wire x1="-7.62" y1="-10.16" x2="-7.62" y2="10.16" width="0.254" layer="94"/>
 <text x="10.16" y="12.7" size="1.6764" layer="95" rot="R180">&gt;NAME</text>
-<text x="-7.62" y="-12.7" size="1.6764" layer="96">MC33063/34063</text>
+<text x="-7.62" y="-12.7" size="1.6764" layer="96">&gt;VALUE</text>
 <pin name="SWC" x="-12.7" y="7.62" length="middle" direction="in"/>
 <pin name="SWE" x="-12.7" y="2.54" length="middle" direction="in"/>
 <pin name="TC" x="-12.7" y="-2.54" length="middle" direction="in"/>
@@ -11967,6 +11981,11 @@ Basic DC/DC converter with internal power-NPN transistor, 100KHz, 1.5A peak swit
 <connect gate="G$1" pin="E" pad="C"/>
 <connect gate="G$1" pin="S" pad="B"/>
 </connects>
+<technologies>
+<technology name=""/>
+</technologies>
+</device>
+<device name="3386" package="TRIM-3386">
 <technologies>
 <technology name=""/>
 </technologies>
@@ -29405,7 +29424,7 @@ Marquardt, RAFI, ITT, and others&lt;p&gt;
 <part name="R19" library="resistor" deviceset="R-EU_" device="0207/10" value="3K9"/>
 <part name="R20" library="resistor" deviceset="R-EU_" device="0207/10" value="560K"/>
 <part name="D3" library="diode" deviceset="1N4004" device="" value="SB140"/>
-<part name="U1" library="adafruit" deviceset="MC33063/MC34063" device="P" value="MC33063"/>
+<part name="U1" library="adafruit" deviceset="MC33063/MC34063" device="P" value="MC34063"/>
 <part name="GND7" library="supply1" deviceset="GND" device=""/>
 <part name="GND8" library="supply1" deviceset="GND" device=""/>
 <part name="GND9" library="supply1" deviceset="GND" device=""/>
