@@ -113,7 +113,7 @@ const int   minutes         =   1;
 const int   seconds         =   2;
 
 // Enter cathode cleaning mode
-volatile bool cathodeClean  =   false;
+volatile bool doCleanCathodes  =   false;
 
 const int   fadeSteps      =   50;
 
@@ -139,7 +139,7 @@ void setup(){
 #ifdef DEBUG
     Serial.begin(9600);
     // Necessary for Leonardo
-    while(!Serial);
+    while (!Serial);
 #endif
 }
 
@@ -148,10 +148,14 @@ void updateTime(){
     readDateTime();
     stop_SPI();
 
-    // Prevent cathode poisoning by randomly cycling through digits for 3 seconds
-    cathodeClean = (time[minutes] % 20) == 0 && time[seconds] < 3 && mode != MODE_SET;
+    // Prevent cathode poisoning
+    doCleanCathodes = (
+        (time[minutes] % 20) == 0
+        && time[seconds] < 3
+        && mode != MODE_SET
+    );
 
-    if(!cathodeClean)
+    if(!doCleanCathodes)
         updateDisplay();
 
     memcpy(prevTime, time, sizeof(time));
@@ -167,13 +171,13 @@ void updateDisplay(){
         case MODE_DISPLAY_DATETIME:
             // Display time and date
             // TODO: use state variable
-            if((time[seconds] / switchInterval) % 2 == 0){
-                if((float) time[seconds] / switchInterval == 0.0)
+            if ((time[seconds] / switchInterval) % 2 == 0) {
+                if ((float) time[seconds] / switchInterval == 0.0)
                     displayTime(time);
                 else
                     fadeTo(time, prevTime, fadeDuration);
                 digitalWrite(decimalPoint, LOW);
-            }else{
+            } else {
                 displayTime(date);
                 digitalWrite(decimalPoint, !(time[seconds] % 2));
             }
@@ -188,20 +192,26 @@ void loop(){
 
     handleAlarms();
 
-    while(cathodeClean){
-        cycleDigits();
-        delay( 100 );
+    while (doCleanCathodes) {
+        cleanCathodes();
+        delay(100);
     }
 
     delay(15);
 }
 
 void saveAlarmSettings(){
-    eeprom_write_block((const void*)&alarmSettings, (void*)0, sizeof(alarmSettings));
+    eeprom_write_block(
+        (const void*)&alarmSettings, 
+        (void*)0, sizeof(alarmSettings)
+    );
 }
 
 void loadAlarmSettings(){
-    eeprom_read_block((void*)&alarmSettings, (void*)0, sizeof(alarmSettings));
+    eeprom_read_block(
+        (void*)&alarmSettings,
+        (void*)0, sizeof(alarmSettings)
+    );
 
     restrictAlarm(alarmSettings.al1Time);
     restrictAlarm(alarmSettings.al2Time);
@@ -211,16 +221,26 @@ void loadAlarmSettings(){
 }
 
 void handleAlarms(){
-    if( alarmSettings.al1Enabled && time[hours] == alarmSettings.al1Time[hours] && time[minutes] == alarmSettings.al1Time[minutes] && time[seconds] == 0 ){
-        while(alarmSettings.al1Enabled){
+    if (
+        alarmSettings.al1Enabled
+        && time[hours] == alarmSettings.al1Time[hours]
+        && time[minutes] == alarmSettings.al1Time[minutes]
+        && time[seconds] == 0
+    ) {
+        while (alarmSettings.al1Enabled) {
             digitalWrite(buzzerPin, millis() % 1000 < 500);
             handleButtons();
         }
         delay(1000);
     }
 
-    if( alarmSettings.al2Enabled && time[hours] == alarmSettings.al2Time[hours] && time[minutes] == alarmSettings.al2Time[minutes] && time[seconds] == 0 ){
-        while(alarmSettings.al2Enabled){
+    if (
+        alarmSettings.al2Enabled 
+        && time[hours] == alarmSettings.al2Time[hours] 
+        && time[minutes] == alarmSettings.al2Time[minutes] 
+        && time[seconds] == 0
+    ) {
+        while (alarmSettings.al2Enabled) {
             digitalWrite(buzzerPin, millis() % 1000 < 500);
             handleButtons();
         }
@@ -231,33 +251,33 @@ void handleAlarms(){
 }
 
 void handleButtons(){
-    switch( buttonPressed() ){
+    switch (buttonPressed()) {
         case setButton:
-            if(buttonIsHeld(setButton))
+            if (buttonIsHeld(setButton) )
                 changeDateTime();
             break;
         case modeButton:
-            if(mode == MODE_DISPLAY_DATETIME)
+            if (mode == MODE_DISPLAY_DATETIME)
                 mode = MODE_DISPLAY_TIME;
-            else if(mode == MODE_DISPLAY_TIME)
+            else if (mode == MODE_DISPLAY_TIME)
                 mode = MODE_DISPLAY_DATETIME;
             delay(buttonDebounce);
             break;
         case al1Button:
-            if( buttonIsHeld( al1Button ) ){
+            if (buttonIsHeld( al1Button)) {
                 setAlarm(1);
-            }else{
-                if ( alarmSettings.al1Enabled )
+            } else {
+                if (alarmSettings.al1Enabled)
                     disableAlarm(1);
                 else
                     enableAlarm(1);
             }
             break;
         case al2Button:
-            if( buttonIsHeld( al2Button ) ){
+            if (buttonIsHeld( al2Button)) {
                 setAlarm(2);
             }else{
-                if ( alarmSettings.al2Enabled )
+                if (alarmSettings.al2Enabled)
                     disableAlarm(2);
                 else
                     enableAlarm(2);
@@ -268,11 +288,11 @@ void handleButtons(){
 
 bool buttonIsHeld(int button){
     int buttonHeldFor = 0;
-    while(buttonPressed() == button){
+    while (buttonPressed() == button) {
         // Increase by 20 since readAvgAnalog takes ~10ms
         buttonHeldFor += 20;
         delay(10);
-        if(buttonHeldFor > 800)
+        if (buttonHeldFor > 800)
             return true;
     }
     return false;
@@ -285,11 +305,19 @@ void enableAlarm(int alarm){
     int timeDisplay[3] = { 0, 0, 100};
 
     if( alarm == 1 ){
-        memcpy(timeDisplay, alarmSettings.al1Time, sizeof(alarmSettings.al1Time));
+        memcpy(
+            timeDisplay,
+            alarmSettings.al1Time,
+            sizeof(alarmSettings.al1Time)
+        );
         alarmSettings.al1Enabled = true;
         digitalWrite(al1Light, HIGH);
     }else{
-        memcpy(timeDisplay, alarmSettings.al2Time, sizeof(alarmSettings.al2Time));
+        memcpy(
+            timeDisplay,
+            alarmSettings.al2Time,
+            sizeof(alarmSettings.al2Time)
+        );
         alarmSettings.al2Enabled = true;
         digitalWrite(al2Light, HIGH);
     }
@@ -297,17 +325,17 @@ void enableAlarm(int alarm){
     displayTime(timeDisplay);
     saveAlarmSettings();
 
-    delay(1000);
+    delay(800);
 
     displayTime(time);
     mode = prevMode;
 }
 
 void disableAlarm(int alarm){
-    if( alarm == 1 ){
+    if (alarm == 1) {
         alarmSettings.al1Enabled = false;
         digitalWrite(al1Light, LOW);
-    }else{
+    } else {
         alarmSettings.al2Enabled = false;
         digitalWrite(al2Light, LOW);
     }
@@ -320,31 +348,47 @@ void setAlarm(int alarm){
 
     int newAlarm[2];
 
-    if( alarm == 1 )
-        memcpy(newAlarm, alarmSettings.al1Time, sizeof(alarmSettings.al1Time));
+    if (alarm == 1)
+        memcpy(
+            newAlarm,
+            alarmSettings.al1Time,
+            sizeof(alarmSettings.al1Time)
+        );
     else
-        memcpy(newAlarm, alarmSettings.al2Time, sizeof(alarmSettings.al2Time));
+        memcpy(
+            newAlarm,
+            alarmSettings.al2Time,
+            sizeof(alarmSettings.al2Time)
+        );
 
     int timeDisplay[3] = { 0, 0, 100 };
-    memcpy(timeDisplay, newAlarm, sizeof(newAlarm));
+    memcpy(
+        timeDisplay,
+        newAlarm,
+        sizeof(newAlarm)
+    );
     displayTime(timeDisplay);
 
-    while( buttonPressed() == al1Button || buttonPressed() == al2Button){};
+    while (buttonPressed() == al1Button || buttonPressed() == al2Button) {};
 
-    for(int i=0; i<2; i++){
-        while(buttonPressed() != al1Button && buttonPressed() != al2Button){
+    for (int i=0; i<2; i++) {
+        while (buttonPressed() != al1Button && buttonPressed() != al2Button) {
             int activeButton = buttonPressed();
             int toAdd = 0;
 
-            if(activeButton == upButton)
+            if (activeButton == upButton)
                 toAdd = 1;
-            else if(activeButton == downButton)
+            else if (activeButton == downButton)
                 toAdd = -1;
 
             newAlarm[i] += toAdd;
             restrictAlarm(newAlarm);
-            memcpy(timeDisplay, newAlarm, sizeof(newAlarm));
-            if(millis() % 1000 < 500)
+            memcpy(
+                timeDisplay,
+                newAlarm,
+                sizeof(newAlarm)
+            );
+            if (millis() % 1000 < 500)
                 timeDisplay[i] = 100;
 
             displayTime(timeDisplay);
@@ -353,12 +397,20 @@ void setAlarm(int alarm){
         delay(buttonDebounce);
     }
 
-    if( alarm == 1 ){
-        memcpy(alarmSettings.al1Time, newAlarm, sizeof(newAlarm));
+    if (alarm == 1) {
+        memcpy(
+            alarmSettings.al1Time,
+            newAlarm,
+            sizeof(newAlarm)
+        );
         alarmSettings.al1Enabled = true;
         digitalWrite(al1Light, HIGH);
-    }else{
-        memcpy(alarmSettings.al2Time, newAlarm, sizeof(newAlarm));
+    } else {
+        memcpy(
+            alarmSettings.al2Time,
+            newAlarm,
+            sizeof(newAlarm)
+        );
         alarmSettings.al2Enabled = true;
         digitalWrite(al2Light, HIGH);
     }
@@ -368,11 +420,11 @@ void setAlarm(int alarm){
 }
 
 void restrictAlarm(int newAlarm[2]){
-    if(newAlarm[hours] > 23) newAlarm[hours] = 0;
-    else if(newAlarm[hours] < 0) newAlarm[hours] = 23;
+    if (newAlarm[hours] > 23) newAlarm[hours] = 0;
+    else if (newAlarm[hours] < 0) newAlarm[hours] = 23;
 
-    if(newAlarm[minutes] > 59) newAlarm[minutes] = 0;
-    else if(newAlarm[minutes] < 0) newAlarm[minutes] = 59;
+    if (newAlarm[minutes] > 59) newAlarm[minutes] = 0;
+    else if (newAlarm[minutes] < 0) newAlarm[minutes] = 59;
 }
 
 void disableInterrupts(){
@@ -389,8 +441,16 @@ void changeDateTime(){
     int newDate[3];
     int newTime[3];
 
-    memcpy(newDate, date, sizeof(date));
-    memcpy(newTime, time, sizeof(time));
+    memcpy(
+        newDate,
+        date,
+        sizeof(date)
+    );
+    memcpy(
+        newTime,
+        time,
+        sizeof(time)
+    );
 
     int prevMode = mode;
     mode = MODE_SET;
@@ -398,38 +458,46 @@ void changeDateTime(){
     digitalWrite(decimalPoint, HIGH);
     displayTime(newDate);
 
-    while(buttonPressed() == setButton){};
+    while (buttonPressed() == setButton) {};
 
-    for(int i=0; i<6; i++){
-        while(buttonPressed() != setButton){
+    for (int i=0; i<6; i++) {
+        while (buttonPressed() != setButton) {
             int activeButton = buttonPressed();
             int toAdd = 0;
 
-            if(activeButton == upButton){
+            if (activeButton == upButton) {
                 toAdd = 1;
-            }else if(activeButton == downButton){
+            } else if (activeButton == downButton) {
                 toAdd = -1;
             }
 
             int timeDisplay[3];
 
-            if( i < 3 ){
+            if ( i < 3 ) {
                 newDate[i] += toAdd;
                 restrictDate(newDate);
 
                 digitalWrite(decimalPoint, HIGH);
 
-                memcpy(timeDisplay, newDate, sizeof(newDate));
-                if(millis() % 1000 < 500)
+                memcpy(
+                    timeDisplay,
+                    newDate,
+                    sizeof(newDate)
+                );
+                if (millis() % 1000 < 500)
                     // Blank digit
                     timeDisplay[i] = 100;
-            }else{
-                newTime[i - 3] += toAdd;
+            } else {
+                newTime[i-3] += toAdd;
                 restrictTime(newTime);
 
                 digitalWrite(decimalPoint, LOW);
 
-                memcpy(timeDisplay, newTime, sizeof(newTime));
+                memcpy(
+                    timeDisplay,
+                    newTime,
+                    sizeof(newTime)
+                );
                 if(millis() % 1000 < 500)
                     timeDisplay[i-3] = 100;
 
@@ -452,57 +520,60 @@ void changeDateTime(){
 }
 
 void restrictTime(int newTime[3]){
-    if(newTime[hours] > 23) newTime[hours] = 0;
-    else if(newTime[hours] < 0) newTime[hours] = 23;
+    if (newTime[hours] > 23) newTime[hours] = 0;
+    else if (newTime[hours] < 0) newTime[hours] = 23;
 
-    if(newTime[minutes] > 59) newTime[minutes] = 0;
-    else if(newTime[minutes] < 0) newTime[minutes] = 59;
+    if (newTime[minutes] > 59) newTime[minutes] = 0;
+    else if (newTime[minutes] < 0) newTime[minutes] = 59;
 
-    if(newTime[seconds] > 59) newTime[seconds] = 0;
-    else if(newTime[seconds] < 0) newTime[seconds] = 59;
+    if (newTime[seconds] > 59) newTime[seconds] = 0;
+    else if (newTime[seconds] < 0) newTime[seconds] = 59;
 }
 
 void restrictDate(int newDate[3]){
-    if(newDate[day] > 31) newDate[day] = 1;
-    else if(newDate[day] < 1) newDate[day] = 31;
+    if (newDate[day] > 31) newDate[day] = 1;
+    else if (newDate[day] < 1) newDate[day] = 31;
 
-    if(newDate[month] > 12) newDate[month] = 1;
-    else if(newDate[month] < 1) newDate[month] = 12;
+    if (newDate[month] > 12) newDate[month] = 1;
+    else if (newDate[month] < 1) newDate[month] = 12;
 
-    if(newDate[year] > 99) newDate[year] = 0;
-    else if(newDate[year] < 0) newDate[year] = 99;
+    if (newDate[year] > 99) newDate[year] = 0;
+    else if (newDate[year] < 0) newDate[year] = 99;
 }
 
 int buttonPressed(){
     int frontReading = readAvgAnalog(frontButtons, 25, 0);
 
-    if( isInRange(frontReading, al1ButtonVal, buttonRange) )
+    if (isInRange(frontReading, al1ButtonVal, buttonRange))
         return al1Button;
-    else if( isInRange(frontReading, upButtonVal, buttonRange) )
+    else if (isInRange(frontReading, upButtonVal, buttonRange))
         return upButton;
-    else if( isInRange(frontReading, downButtonVal, buttonRange) )
+    else if (isInRange(frontReading, downButtonVal, buttonRange))
         return downButton;
-    else if( isInRange(frontReading, al2ButtonVal, buttonRange) )
+    else if (isInRange(frontReading, al2ButtonVal, buttonRange))
         return al2Button;
 
     int rearReading = readAvgAnalog(rearButtons, 5, 2);
 
-    if( isInRange(rearReading, modeButtonVal, buttonRange) )
+    if (isInRange(rearReading, modeButtonVal, buttonRange))
         return modeButton;
-    else if( isInRange(rearReading, setButtonVal, buttonRange) )
+    else if (isInRange(rearReading, setButtonVal, buttonRange))
         return setButton;
 
     return 0;
 }
 
 bool isInRange(int value, int compare, int range){
-    return value >= (compare - range) && value <= (compare + range);
+    return(
+        value >= (compare - range)
+        && value <= (compare + range)
+    );
 }
 
 int readAvgAnalog(int pin, byte numReadings, int readingDelay){
     int readingsTotal = 0;
 
-    for(int i = 0; i < numReadings; i++){
+    for (int i = 0; i < numReadings; i++) {
         readingsTotal += analogRead(pin);
         delay(readingDelay);
     }
@@ -514,9 +585,9 @@ void updateBrightness(){
     int brightness = map(readAvgAnalog(ldrPin,5,2), ldrDark, ldrBright, minBrightness, maxBrightness);
     int brightnessPercent = constrain(brightness, minBrightness, maxBrightness);
 
-    if(brightnessPercent > lastBrightness){
+    if (brightnessPercent > lastBrightness) {
         brightnessPercent = lastBrightness + 1;
-    }else if(brightnessPercent < lastBrightness){
+    }else if (brightnessPercent < lastBrightness) {
         brightnessPercent = lastBrightness - 1;
     }
 
@@ -536,20 +607,24 @@ void setBrightness(int brightness){
 void fadeTo(int* time, int* prevTime, int duration){
     float phaseDuration = 1000 * duration / fadeSteps;
 
-    for(int phase = 1; phase <= fadeSteps; phase++){
+    for (int phase = 1; phase <= fadeSteps; phase++) {
         displayTime(prevTime);
-        delayMicroseconds((phaseDuration * (fadeSteps-phase)) / fadeSteps + 1);
+        delayMicroseconds(
+            phaseDuration * (fadeSteps-phase) / fadeSteps + 1
+        );
         displayTime(time);
-        delayMicroseconds(phaseDuration * phase / fadeSteps);
+        delayMicroseconds(
+            phaseDuration * phase / fadeSteps
+        );
     }
 }
 
 void displayTime(int* time){
-    for(int i = 2; i >= 0; i--){
-        if(time[i] > 99){
+    for (int i = 2; i >= 0; i--) {
+        if (time[i] > 99) {
             shift10(dataPin, clkPin, blank);
             shift10(dataPin, clkPin, blank);
-        }else{
+        } else {
             shift10(dataPin, clkPin, numbers[(int) time[i] % 10]);
             shift10(dataPin, clkPin, numbers[(int) time[i] / 10]);
         }
@@ -564,7 +639,7 @@ void clearDisplay(){
     displayTime(clearTime);
 }
 
-void cycleDigits(){
+void cleanCathodes(){
         int randomDigits[3] = {
             random(0,99),
             random(0,99),
@@ -575,7 +650,7 @@ void cycleDigits(){
 
 // MSB first
 void shift10(uint8_t dataPin, uint8_t clockPin, short val){
-    for (int i = 0; i < 10; i++){
+    for (int i = 0; i < 10; i++) {
         digitalWrite(dataPin, !!(val & (1 << (9 - i))));
 
         digitalWrite(clockPin, HIGH);
@@ -613,21 +688,27 @@ void start_SPI(){
 }
 
 void RTC_init(){
-    pinMode(csPin,OUTPUT); // chip select
-    // start the SPI library:
+    pinMode(csPin,OUTPUT);
+
     SPI.begin();
     SPI.setBitOrder(MSBFIRST);
     SPI.setDataMode(SPI_MODE1); // both mode 1 & 3 should work
-    //set control register
+    // Set control register
     digitalWrite(csPin, LOW);
     SPI.transfer(0x8E);
-    SPI.transfer(0x60); //60= disable Oscillator and Battery SQ wave @1hz, temp compensation, Alarms disabled
+    // 60 = disable Oscillator and Battery SQ wave @1hz,
+    // temp compensation, Alarms disabled
+    SPI.transfer(0x60);
     digitalWrite(csPin, HIGH);
     delay(10);
 }
 
 void setDateTime(int* date, int* time){
-    int TimeDate [7]={time[seconds],time[minutes],time[hours],0,date[day],date[month],date[year]};
+    int TimeDate [7]={
+        time[seconds], time[minutes], time[hours],
+        0, // DOW, not used
+        date[day], date[month], date[year]
+    };
     for(int i = 0; i < 7; i++){
         if(i == 3)
             i++;
@@ -649,7 +730,7 @@ void setDateTime(int* date, int* time){
 }
 
 void readDateTime(){
-    int TimeDate [7]; //second,minute,hour,null,day,month,year
+    int TimeDate [7]; //seconds,minutes,hours,dow,day,month,year
     for(int i=0; i < 7; i++){
         if(i == 3)
             i = 4;
