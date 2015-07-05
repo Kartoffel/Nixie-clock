@@ -18,7 +18,7 @@ const int   clkPin          =   15; // mega32u4 SCK - PB1
 
 // Anode driver, used for dimming
 const int   anodes          =   5;
-const int   minBrightness   =   50;
+const int   minBrightness   =   55;
 const int   maxBrightness   =   100;
 int         lastBrightness  =   minBrightness;
 
@@ -231,6 +231,7 @@ void handleAlarms(){
             digitalWrite(buzzerPin, millis() % 1000 < 500);
             handleButtons();
         }
+        digitalWrite(buzzerPin, LOW);
         delay(1000);
     }
 
@@ -244,6 +245,7 @@ void handleAlarms(){
             digitalWrite(buzzerPin, millis() % 1000 < 500);
             handleButtons();
         }
+        digitalWrite(buzzerPin, LOW);
         delay(1000);
     }
 
