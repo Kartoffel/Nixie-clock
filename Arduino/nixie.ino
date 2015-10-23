@@ -67,6 +67,10 @@ int         date[3]         =   { 1, 1, 0 };
 int         time[3]         =   { 0, 0, 0 };
 int         prevTime[3]     =   { 0, 0, 0 };
 
+// Enable automatic DST switching (+1 hour between october and march)
+const bool  enableDST       =   true;
+bool        lastDST;
+
 struct alarmSettings_t{
     bool    al1Enabled;
     bool    al2Enabled;
@@ -112,6 +116,8 @@ const int   hours           =   0;
 const int   minutes         =   1;
 const int   seconds         =   2;
 
+const int   thisCentury     =   2000;
+
 // Enter cathode cleaning mode
 volatile bool doCleanCathodes  =   false;
 
@@ -133,6 +139,12 @@ void setup(){
 
     loadAlarmSettings();
 
+    start_SPI();
+    readDateTime();
+    stop_SPI();
+
+    lastDST = isDST(date);
+
     // Calculate the R factor for exponential dimming
     R = dimFactor * log10(2) / log10(255);
 
@@ -145,7 +157,11 @@ void setup(){
 
 void updateTime(){
     start_SPI();
+    // Read Date/Time from RTC
     readDateTime();
+    // Adjust time for DST
+    if(enableDST)
+        adjustDST();
     stop_SPI();
 
     // Prevent cathode poisoning
@@ -170,7 +186,6 @@ void updateDisplay(){
             break;
         case MODE_DISPLAY_DATETIME:
             // Display time and date
-            // TODO: use state variable
             if ((time[seconds] / switchInterval) % 2 == 0) {
                 if ((float) time[seconds] / switchInterval == 0.0)
                     displayTime(time);
@@ -198,6 +213,65 @@ void loop(){
     }
 
     delay(15);
+}
+
+// Find the day of the week (0 = sun, 6 = sat)
+// By Michael Keith & Tom Craver
+// https://cs.uwaterloo.ca/~alopez-o/math-faq/node73.html
+int DOW(int *date){
+    int d = date[day];
+    int m = date[month];
+    int y = date[year] + thisCentury;
+
+    return (d+=m<3?y--:y-2,23*m/9+d+4+y/4-y/100+y/400)%7;
+}
+
+bool isLeapYear(int *date){
+    if(date[year] % 400 == 0) return true;
+    if(date[year] % 100 == 0) return false;
+    return (date[year] % 4 == 0);
+}
+
+// Check if Daylight saving time (DST) applies
+// Northern Hemisphere - +1 hour between March and October
+bool isDST(int *date){
+    bool dst = false;
+    int d = date[day];
+    int m = date[month];
+    int y = date[year] + thisCentury;
+
+    dst = (m > 3 && m < 10); // October-March
+
+    if (m == 3){
+        // Last sunday of March
+        dst = (d >= ((31 - (5 * y /4 + 4) % 7)));
+    }else if (m == 10){
+        // Last sunday of October
+        dst = (d < ((31 - (5 * y /4 + 1) % 7)));
+    }
+
+    return dst;
+}
+
+// Adjust time for DST
+// Northern Hemisphere - +1 hour between March and October
+void adjustDST(){
+    if(lastDST == isDST(date))
+        return;
+
+    if(isDST(date)){
+        if(time[hours] == 2){
+            time[hours]++;
+            lastDST = true;
+            setDateTime(date, time);
+        }
+    }else{
+        if(time[hours] == 3){
+            time[hours]--;
+            lastDST = false;
+            setDateTime(date, time);
+        }
+    }
 }
 
 void saveAlarmSettings(){
@@ -236,9 +310,9 @@ void handleAlarms(){
     }
 
     if (
-        alarmSettings.al2Enabled 
-        && time[hours] == alarmSettings.al2Time[hours] 
-        && time[minutes] == alarmSettings.al2Time[minutes] 
+        alarmSettings.al2Enabled
+        && time[hours] == alarmSettings.al2Time[hours]
+        && time[minutes] == alarmSettings.al2Time[minutes]
         && time[seconds] == 0
     ) {
         while (alarmSettings.al2Enabled) {
@@ -515,6 +589,8 @@ void changeDateTime(){
     start_SPI();
     setDateTime(newDate, newTime);
     stop_SPI();
+
+    lastDST = isDST(newDate);
 
     mode = prevMode;
 
