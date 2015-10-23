@@ -68,11 +68,11 @@ int         time[3]         =   { 0, 0, 0 };
 int         prevTime[3]     =   { 0, 0, 0 };
 
 struct alarmSettings_t{
-    bool    al1Enabled      =   false;
-    bool    al2Enabled      =   false;
+    bool    al1Enabled;
+    bool    al2Enabled;
 
-    int     al1Time[2]      =   { 0, 0 };
-    int     al2Time[2]      =   { 0, 0 };
+    int     al1Time[2];
+    int     al2Time[2];
 } alarmSettings;
 
 // The number of steps between the output being on and off
@@ -202,7 +202,7 @@ void loop(){
 
 void saveAlarmSettings(){
     eeprom_write_block(
-        (const void*)&alarmSettings, 
+        (const void*)&alarmSettings,
         (void*)0, sizeof(alarmSettings)
     );
 }
